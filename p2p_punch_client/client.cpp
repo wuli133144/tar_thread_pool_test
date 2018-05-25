@@ -12,11 +12,90 @@
 #include "tc_thread_pool.h"
 
 
+#include "tc_http.h"
+#include "tc_common.h"
+#include "tc_clientsocket.h"
+#include "tc_timeprovider.h"
+#include "tc_functor.h"
+
+
+
+
+
 using namespace std;
 using namespace tars;
 
 
 
+
+//test httprequest
+
+
+
+void handle(int timeouts){
+
+         cout<<"threadid="<<pthread_self()<<endl;
+		 TC_HttpRequest reqhttp;
+		 TC_HttpResponse response;
+		 
+		 reqhttp.setGetRequest("http://172.16.103.125:80/");
+         TC_URL url=reqhttp.getURL();
+		 cout<<"http url="<<url.getDomain()<<" port="<<url.getPort()<<endl;
+		 	
+		 reqhttp.doRequest(response); 
+		 cout<<"httpresponse headline:"<<response.getResponseHeaderLine()<<endl;
+		 cout<<"httpresponse contents:"<<response.getContent()<<endl;
+		 return;
+		 
+}
+
+
+int main(int argc,char **argv){
+
+//thread num , timeout
+if(argc!=3){
+	cout<<"usage:"<<argv[0]<<" argsment error"<<endl;
+	return -1;
+}
+
+//get thread num
+
+try{
+int threadnum=TC_Common::strto<int>(string(argv[1]));
+int timeouts=TC_Common::strto<int>(string(argv[2]));
+cout<<"threadnum="<<threadnum<<" timeout="<<timeouts<<endl;
+
+TC_ThreadPool thrpool;
+thrpool.init(threadnum);
+thrpool.start();
+
+
+
+TC_Functor<void,TL::TLMaker<int>::Result>cmd(handle);
+TC_Functor<void,TL::TLMaker<int>::Result>::wrapper_type fwrap(cmd,timeouts);
+for(int i=0;i<threadnum;i++){
+ 	thrpool.exec(fwrap);
+}
+
+ 
+ thrpool.waitForAllDone(1000);
+ 
+ }catch( exception &e){
+
+         cout<<"error:"<<e.what()<<endl;
+ 
+ }
+catch(...){
+	
+}
+
+ return 0;
+
+}
+
+
+
+#if 0
 
 class mythread:public TC_Thread{
 	protected:
@@ -64,7 +143,7 @@ int main(int argc, char * argv [ ])
     std::cout<<"main thread"<<std::endl;
 
 	pool.waitForAllDone(1000);
-      return 0;
+    return 0;
 
 }
-
+#endif 
